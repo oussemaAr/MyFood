@@ -8,11 +8,11 @@ import javax.inject.Inject
 class RecipeRepositoryImpl @Inject constructor(
     val dataSource: RecipeDataSource
 ) : RecipeRepository {
-    override suspend fun fetchListRecipes(): List<RecipeEntity> {
-        return dataSource.fetchRecipes()?.toDomain().orEmpty()
+    override suspend fun fetchListRecipes(): Result<List<RecipeEntity>> {
+        return dataSource.fetchRecipes().map { it.toDomain() }
     }
 
-    override suspend fun fetchRecipeById(id: String): RecipeEntity {
+    override suspend fun fetchRecipeById(id: String): Result<RecipeEntity> {
         TODO("Not yet implemented")
     }
 }

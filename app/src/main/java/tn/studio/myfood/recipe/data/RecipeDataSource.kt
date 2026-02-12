@@ -1,6 +1,5 @@
 package tn.studio.myfood.recipe.data
 
-import android.util.Log
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
@@ -12,19 +11,18 @@ class RecipeDataSource @Inject constructor(
     val networkClient: NetworkClient
 ) {
 
-    suspend fun fetchRecipes(): RecipeApiResponse? {
+    suspend fun fetchRecipes(): Result<RecipeApiResponse> {
         return try {
             val result = networkClient.client
                 .get("v1/recipes")
 
             if (result.status == HttpStatusCode.OK) {
-                result.body()
+                Result.success(result.body())
             } else {
-                null
+                Result.failure(Exception("Status Code not 200"))
             }
         } catch (ex: Exception) {
-            Log.e("TAG", "fetchRecipes: $ex")
-            null
+            Result.failure(ex)
         }
     }
 

@@ -7,7 +7,10 @@ class FetchAllRecipesUseCase @Inject constructor(private val repository: RecipeR
 
     suspend operator fun invoke() = repository
         .fetchListRecipes()
-        .sortedByDescending { newItem ->
-            newItem.name
+        .map {
+            it.sortedByDescending { newItem ->
+                newItem.name
+            }
         }
+
 }
