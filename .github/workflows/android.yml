@@ -1,0 +1,76 @@
+name: Android CI/CD
+
+on:
+  push:
+    branches:
+      - main # Triggers the workflow on pushes to the 'main' branch
+  pull_request:
+    branches:
+      - main # Triggers the workflow on pull requests targeting 'main'
+  workflow_dispatch: # Allows manual triggering of the workflow from the GitHub Actions UI
+
+env:
+  # Optional: Enable Gradle build action cache for faster builds
+  GRADLE_BUILD_ACTION_CACHE_ENABLED: true
+  # Define Java version (e.g., '17' for modern Android projects)
+  JAVA_VERSION: '17'
+  # Define distribution for Java (e.g., 'temurin' is a popular choice)
+  JAVA_DISTRIBUTION: 'temurin'
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest # Use a Linux runner for building Android projects
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Action to checkout your repository code
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew # Make gradlew executable
+
+      - name: Run Unit Tests
+        run: ./gradlew test # Executes all unit tests in your project
+
+      - name: Build Release AAB
+        # IMPORTANT: Your app/build.gradle must be configured for release signing.
+        # If your keystore file and passwords are not committed to the repository (recommended),
+        # you'll need to pass them as environment variables from GitHub Secrets.
+        #
+        # Example for passing signing configuration via environment variables:
+        # env:
+        #   ORG_GRADLE_PROJECT_KEYSTORE_PATH: ${{ github.workspace }}/your_keystore.jks # If you download it
+        #   ORG_GRADLE_PROJECT_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        #   ORG_GRADLE_PROJECT_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        #   ORG_GRADLE_PROJECT_KEY_ALIAS_PASSWORD: ${{ secrets.KEY_ALIAS_PASSWORD }}
+        #
+        # If you base64 encode your keystore and store it as a secret, you'd decode it first:
+        # - name: Decode Keystore
+        #   run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > your_keystore.jks
+        #
+        # Then update your build.gradle to point to 'your_keystore.jks'
+        # and pass the passwords via secrets.
+        run: ./gradlew assemble # Builds the release Android App Bundle (.aab)
+
+      - name: Upload Release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-bundle # Name of the artifact
+          # Adjust this path based on your project structure and build variant
+          path: app/build/intermediates/apk/debug/app-debug.apk
+          # retention-days: 5 # Optional: How long to keep the artifact (default is 90)
